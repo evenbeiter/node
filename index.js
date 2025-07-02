@@ -43,7 +43,7 @@ app.all('/api/fetch', async (req, res) => {
     const contentType = req.headers['content-type'] || '';
     const isJson = contentType.includes('application/json');
 
-    // ✅ 白名單 header，避免轉送非法 header
+    // ✅ 白名單 header（全部小寫）
     const allowList = [
       'content-type',
       'x-linemedia-platform',
@@ -52,9 +52,11 @@ app.all('/api/fetch', async (req, res) => {
       'user-agent'
     ];
 
+    // ✅ 小寫化所有 header key 並挑選白名單
     const headers = {};
     for (const h of allowList) {
-      if (req.headers[h]) headers[h] = req.headers[h];
+      const v = req.headers[h.toLowerCase()];
+      if (v) headers[h] = v;
     }
 
     const fetchOptions = {
@@ -68,9 +70,12 @@ app.all('/api/fetch', async (req, res) => {
         : new URLSearchParams(req.body).toString();
     }
 
+console.log('[proxy fetch] headers:', headers);
+console.log('[proxy fetch] targetUrl:', targetUrl);
+console.log('[proxy fetch] method:', req.method);
+    
     const response = await fetch(targetUrl, fetchOptions);
     const responseType = response.headers.get('content-type') || 'text/plain';
-
     const data = responseType.includes('application/json')
       ? await response.json()
       : await response.text();
