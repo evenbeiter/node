@@ -1,10 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
-const googleTranslate = require('google-translate-api-x');
-const papagoTranslate = require('papago-translate');
+const translateGoogle = require('google-translate-api-x');
+const { Papago } = require('papago-translate');
 
 const app = express();
+const papagoClient = new Papago();
+
 app.use(cors({ origin: 'https://evenbeiter.github.io' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -14,7 +16,7 @@ app.get('/', (req, res) => {
   res.send('Node.js Translation Proxy is running.');
 });
 
-// CORS Fetch Proxy
+// Fetch proxy
 app.all('/api/fetch', async (req, res) => {
   const targetUrl = req.query.url;
   if (!targetUrl) return res.status(400).json({ error: "Missing 'url' parameter" });
@@ -45,13 +47,12 @@ app.all('/api/fetch', async (req, res) => {
     } else {
       res.set('Content-Type', contentType).status(response.status).send(data);
     }
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Iframe embed
+// Embed route
 app.get('/embed', async (req, res) => {
   const url = req.query.url;
   if (!url) return res.status(400).send("No URL provided");
@@ -66,27 +67,33 @@ app.get('/embed', async (req, res) => {
   }
 });
 
-// Google Translate
+// Google Translate route
 app.post('/translate/google', async (req, res) => {
-  const { text, to } = req.body;
+  const { text, to, from = 'auto' } = req.body;
   if (!text || !to) return res.status(400).json({ error: 'Missing text or target language' });
 
   try {
-    const result = await googleTranslate(text, { to });
-    res.json({ translatedText: result.text });
+    const result = await translateGoogle(text, { from, to });
+    res.json({
+      translatedText: result.text,
+      detectedSourceLang: result.from.language.iso
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Papago Translate
+// Papago Translate route
 app.post('/translate/papago', async (req, res) => {
-  const { text, to } = req.body;
+  const { text, to, from = 'auto' } = req.body;
   if (!text || !to) return res.status(400).json({ error: 'Missing text or target language' });
 
   try {
-    const result = await papagoTranslate(text, to);
-    res.json({ translatedText: result });
+    const result = await papagoClient.translate({ text, to, from });
+    res.json({
+      translatedText: result.result.translation,
+      detectedSourceLang: result.result.srcLangType
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
