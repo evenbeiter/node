@@ -32,14 +32,17 @@ app.get('/', (req, res) => {
   res.send('Node.js Translation Proxy is running.');
 });
 
-// 🔹 通用 fetch proxy（可自訂 url）
+// 🔹 通用 fetch proxy（支援 JSON 與表單格式）
 app.all('/api/fetch', async (req, res) => {
   const targetUrl = req.query.url;
   if (!targetUrl) return res.status(400).json({ error: "Missing 'url' parameter" });
 
   try {
     const headers = { ...req.headers };
-    delete headers['host']; // 防止 host header 錯誤
+    delete headers['host']; // 避免 host header 錯誤
+
+    const contentType = req.headers['content-type'] || '';
+    const isJson = contentType.includes('application/json');
 
     const fetchOptions = {
       method: req.method,
@@ -47,20 +50,41 @@ app.all('/api/fetch', async (req, res) => {
     };
 
     if (req.method === 'POST') {
-      fetchOptions.body = new URLSearchParams(req.body).toString();
-      fetchOptions.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+      fetchOptions.body = isJson
+        ? JSON.stringify(req.body)
+        : new URLSearchParams(req.body).toString();
+
+      fetchOptions.headers['Content-Type'] = isJson
+        ? 'application/json'
+        : 'application/x-www-form-urlencoded';
     }
 
     const response = await fetch(targetUrl, fetchOptions);
-    const contentType = response.headers.get('content-type') || 'text/plain';
-    const data = contentType.includes('application/json')
+    const responseType = response.headers.get('content-type') || 'text/plain';
+
+    const data = responseType.includes('application/json')
       ? await response.json()
       : await response.text();
 
-    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Type', responseType);
     res.status(response.status).send(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// 🔹 Iframe embed
+app.get('/embed', async (req, res) => {
+  const url = req.query.url;
+  if (!url) return res.status(400).send("No URL provided");
+
+  try {
+    const response = await fetch(url);
+    const buffer = await response.arrayBuffer();
+    res.set(Object.fromEntries(response.headers));
+    res.send(Buffer.from(buffer));
+  } catch (err) {
+    res.status(500).send(`Error fetching URL: ${err}`);
   }
 });
 
