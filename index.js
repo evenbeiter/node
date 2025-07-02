@@ -12,7 +12,13 @@ const allowedOrigin = 'https://evenbeiter.github.io';
 app.use(cors({ origin: allowedOrigin }));
 
 // 額外處理所有 OPTIONS 預請求，避免 CORS policy 阻擋
-app.options('*', cors({ origin: allowedOrigin }));
+// app.options('*', cors({ origin: allowedOrigin }));
+app.options('*', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', 'https://evenbeiter.github.io');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.sendStatus(200);
+});
 
 // 接收 JSON 及 URL 編碼請求內容
 app.use(express.urlencoded({ extended: true }));
