@@ -40,10 +40,7 @@ app.all('/api/fetch', async (req, res) => {
   if (!targetUrl) return res.status(400).json({ error: "Missing 'url' parameter" });
 
   try {
-    const contentType = req.headers['content-type'] || '';
-    const isJson = contentType.includes('application/json');
-
-    // ✅ 白名單 header（全部小寫）
+    // 允許的 headers 名單（小寫）
     const allowList = [
       'content-type',
       'x-linemedia-platform',
@@ -52,11 +49,15 @@ app.all('/api/fetch', async (req, res) => {
       'user-agent'
     ];
 
-    // ✅ 小寫化所有 header key 並挑選白名單
     const headers = {};
     for (const h of allowList) {
-      const v = req.headers[h.toLowerCase()];
-      if (v) headers[h] = v;
+      const val = req.headers[h];
+      if (val) headers[h] = val;
+    }
+
+    // 若沒有 user-agent，偽裝成 LINE App
+    if (!headers['user-agent']) {
+      headers['user-agent'] = 'Line/13.1.0 Android';
     }
 
     const fetchOptions = {
@@ -65,27 +66,31 @@ app.all('/api/fetch', async (req, res) => {
     };
 
     if (req.method === 'POST') {
+      const contentType = req.headers['content-type'] || '';
+      const isJson = contentType.includes('application/json');
       fetchOptions.body = isJson
         ? JSON.stringify(req.body)
         : new URLSearchParams(req.body).toString();
     }
 
-console.log('[proxy fetch] headers:', headers);
-console.log('[proxy fetch] targetUrl:', targetUrl);
-console.log('[proxy fetch] method:', req.method);
-    
-    const response = await fetch(targetUrl, fetchOptions);
-    const responseType = response.headers.get('content-type') || 'text/plain';
-    const data = responseType.includes('application/json')
-      ? await response.json()
-      : await response.text();
+    console.log('[proxy fetch] headers:', headers);
+    console.log('[proxy fetch] targetUrl:', targetUrl);
+    console.log('[proxy fetch] method:', req.method);
 
-    res.setHeader('Content-Type', responseType);
-    res.status(response.status).send(data);
+    const response = await fetch(targetUrl, fetchOptions);
+    const responseText = await response.text();
+
+    console.log('[proxy fetch] response.status:', response.status);
+    console.log('[proxy fetch] response.body:', responseText);
+
+    res.setHeader('Content-Type', response.headers.get('content-type') || 'text/plain');
+    res.status(response.status).send(responseText);
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // 🔹 Iframe embed
 app.get('/embed', async (req, res) => {
