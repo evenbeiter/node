@@ -38,25 +38,24 @@ app.all('/api/fetch', async (req, res) => {
   if (!targetUrl) return res.status(400).json({ error: "Missing 'url' parameter" });
 
   try {
-    const headers = { ...req.headers };
-    delete headers['host']; // 避免 host header 錯誤
-
     const contentType = req.headers['content-type'] || '';
     const isJson = contentType.includes('application/json');
-
+    
+    const headers = {
+      'Content-Type': isJson
+        ? 'application/json'
+        : 'application/x-www-form-urlencoded'
+    };
+    
     const fetchOptions = {
       method: req.method,
       headers,
     };
-
+    
     if (req.method === 'POST') {
       fetchOptions.body = isJson
         ? JSON.stringify(req.body)
         : new URLSearchParams(req.body).toString();
-
-      fetchOptions.headers['Content-Type'] = isJson
-        ? 'application/json'
-        : 'application/x-www-form-urlencoded';
     }
 
     const response = await fetch(targetUrl, fetchOptions);
