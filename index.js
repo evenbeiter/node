@@ -10,17 +10,18 @@ const papagoClient = new Papago();
 // ✅ 設定允許的前端來源
 const allowedOrigin = 'https://evenbeiter.github.io';
 
-// ✅ 顯式處理所有 OPTIONS 預請求（避免 CORS 被擋）
-app.options('*', (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-linemedia-client, x-linemedia-platform, accept-language, user-agent');
-  res.sendStatus(200);
-});
-
-
-// ✅ 設定 CORS middleware
-app.use(cors({ origin: allowedOrigin }));
+// ✅ 設定 CORS middleware（包含自訂 headers）
+app.use(cors({
+  origin: allowedOrigin,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: [
+    'content-type',
+    'x-linemedia-client',
+    'x-linemedia-platform',
+    'accept-language',
+    'user-agent'
+  ]
+}));
 
 // ✅ 支援 JSON 與 URL 編碼格式
 app.use(express.urlencoded({ extended: true }));
@@ -33,7 +34,6 @@ app.get('/', (req, res) => {
   res.send('Node.js Translation Proxy is running.');
 });
 
-// 🔹 通用 fetch proxy（支援 JSON 與表單格式）
 // 🔹 通用 fetch proxy（支援 JSON、表單格式，並支援特定 header）
 app.all('/api/fetch', async (req, res) => {
   const targetUrl = req.query.url;
