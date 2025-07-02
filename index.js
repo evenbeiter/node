@@ -33,6 +33,7 @@ app.get('/', (req, res) => {
 });
 
 // 🔹 通用 fetch proxy（支援 JSON 與表單格式）
+// 🔹 通用 fetch proxy（支援 JSON、表單格式，並支援特定 header）
 app.all('/api/fetch', async (req, res) => {
   const targetUrl = req.query.url;
   if (!targetUrl) return res.status(400).json({ error: "Missing 'url' parameter" });
@@ -40,18 +41,26 @@ app.all('/api/fetch', async (req, res) => {
   try {
     const contentType = req.headers['content-type'] || '';
     const isJson = contentType.includes('application/json');
-    
-    const headers = {
-      'Content-Type': isJson
-        ? 'application/json'
-        : 'application/x-www-form-urlencoded'
-    };
-    
+
+    // ✅ 白名單 header，避免轉送非法 header
+    const allowList = [
+      'content-type',
+      'x-linemedia-platform',
+      'x-linemedia-client',
+      'accept-language',
+      'user-agent'
+    ];
+
+    const headers = {};
+    for (const h of allowList) {
+      if (req.headers[h]) headers[h] = req.headers[h];
+    }
+
     const fetchOptions = {
       method: req.method,
       headers,
     };
-    
+
     if (req.method === 'POST') {
       fetchOptions.body = isJson
         ? JSON.stringify(req.body)
