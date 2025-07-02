@@ -1,0 +1,14 @@
+{
+  "name": "node-api-proxy",
+  "version": "1.0.0",
+  "description": "API proxy for fetch and embed",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "node-fetch": "^2.6.11"
+  }
+}
