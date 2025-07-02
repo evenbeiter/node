@@ -20,9 +20,12 @@ app.all('/api/fetch', async (req, res) => {
   }
 
   try {
-    let fetchOptions = {
+    const headers = { ...req.headers };
+    delete headers['host'];
+
+    const fetchOptions = {
       method: req.method,
-      headers: { ...req.headers }
+      headers,
     };
 
     if (req.method === 'POST') {
@@ -31,8 +34,8 @@ app.all('/api/fetch', async (req, res) => {
     }
 
     const response = await fetch(targetUrl, fetchOptions);
-    const contentType = response.headers.get('content-type') || 'text/plain';
 
+    const contentType = response.headers.get('content-type') || 'text/plain';
     const data = contentType.includes('application/json')
       ? await response.json()
       : await response.text();
@@ -47,6 +50,7 @@ app.all('/api/fetch', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 app.get('/embed', async (req, res) => {
   const url = req.query.url;
