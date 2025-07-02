@@ -14,9 +14,10 @@ const allowedOrigin = 'https://evenbeiter.github.io';
 app.options('*', (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-linemedia-client, x-linemedia-platform, accept-language, user-agent');
   res.sendStatus(200);
 });
+
 
 // ✅ 設定 CORS middleware
 app.use(cors({ origin: allowedOrigin }));
