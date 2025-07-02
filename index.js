@@ -7,7 +7,14 @@ const { Papago } = require('papago-translate');
 const app = express();
 const papagoClient = new Papago();
 
-app.use(cors({ origin: 'https://evenbeiter.github.io' }));
+// 設定 CORS：允許 GitHub Pages 網址跨來源請求
+const allowedOrigin = 'https://evenbeiter.github.io';
+app.use(cors({ origin: allowedOrigin }));
+
+// 額外處理所有 OPTIONS 預請求，避免 CORS policy 阻擋
+app.options('*', cors({ origin: allowedOrigin }));
+
+// 接收 JSON 及 URL 編碼請求內容
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
@@ -16,14 +23,14 @@ app.get('/', (req, res) => {
   res.send('Node.js Translation Proxy is running.');
 });
 
-// Fetch proxy
+// 通用 fetch proxy route
 app.all('/api/fetch', async (req, res) => {
   const targetUrl = req.query.url;
   if (!targetUrl) return res.status(400).json({ error: "Missing 'url' parameter" });
 
   try {
     const headers = { ...req.headers };
-    delete headers['host'];
+    delete headers['host']; // 避免 SSL 錯誤
 
     const fetchOptions = {
       method: req.method,
@@ -52,7 +59,7 @@ app.all('/api/fetch', async (req, res) => {
   }
 });
 
-// Embed route
+// 🔹 網頁嵌入 route（如 iframe）
 app.get('/embed', async (req, res) => {
   const url = req.query.url;
   if (!url) return res.status(400).send("No URL provided");
@@ -67,7 +74,7 @@ app.get('/embed', async (req, res) => {
   }
 });
 
-// Google Translate route
+// Google 翻譯 API route
 app.post('/translate/google', async (req, res) => {
   const { text, to, from = 'auto' } = req.body;
   if (!text || !to) return res.status(400).json({ error: 'Missing text or target language' });
@@ -83,7 +90,7 @@ app.post('/translate/google', async (req, res) => {
   }
 });
 
-// Papago Translate route
+// Papago 翻譯 API route
 app.post('/translate/papago', async (req, res) => {
   const { text, to, from = 'auto' } = req.body;
   if (!text || !to) return res.status(400).json({ error: 'Missing text or target language' });
@@ -99,7 +106,7 @@ app.post('/translate/papago', async (req, res) => {
   }
 });
 
-// Start server
+// 啟動伺服器
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
