@@ -40,52 +40,56 @@ app.all('/api/fetch', async (req, res) => {
   if (!targetUrl) return res.status(400).json({ error: "Missing 'url' parameter" });
 
   try {
-    // 允許的 headers 名單（小寫）
-    const allowList = [
+    const headerAllowList = [
       'content-type',
       'x-linemedia-platform',
       'x-linemedia-client',
       'accept-language',
-      'user-agent'
+      'user-agent',
+      'referer',
+      'origin'
     ];
 
     const headers = {};
-    for (const h of allowList) {
+    for (const h of headerAllowList) {
       const val = req.headers[h];
       if (val) headers[h] = val;
     }
 
-    // 若沒有 user-agent，偽裝成 LINE App
+    // ✅ 自動補 UA/Referer（避免 403）
     if (!headers['user-agent']) {
-      headers['user-agent'] = 'Line/13.1.0 Android';
+      headers['user-agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114.0.0.0 Safari/537.36';
+    }
+    if (!headers['referer']) {
+      try {
+        const u = new URL(targetUrl);
+        headers['referer'] = `${u.protocol}//${u.hostname}/`;
+      } catch {}
     }
 
+    const method = req.method;
+    const contentType = req.headers['content-type'] || '';
+    const isJson = contentType.includes('application/json');
+
     const fetchOptions = {
-      method: req.method,
-      headers,
+      method,
+      headers
     };
 
-    if (req.method === 'POST') {
-      const contentType = req.headers['content-type'] || '';
-      const isJson = contentType.includes('application/json');
+    if (method === 'POST') {
       fetchOptions.body = isJson
         ? JSON.stringify(req.body)
         : new URLSearchParams(req.body).toString();
     }
 
-    console.log('[proxy fetch] headers:', headers);
-    console.log('[proxy fetch] targetUrl:', targetUrl);
-    console.log('[proxy fetch] method:', req.method);
-
     const response = await fetch(targetUrl, fetchOptions);
-    const responseText = await response.text();
+    const contentTypeRes = response.headers.get('content-type') || 'text/plain';
+    const data = contentTypeRes.includes('application/json')
+      ? await response.json()
+      : await response.text();
 
-    console.log('[proxy fetch] response.status:', response.status);
-    console.log('[proxy fetch] response.body:', responseText);
-
-    res.setHeader('Content-Type', response.headers.get('content-type') || 'text/plain');
-    res.status(response.status).send(responseText);
-
+    res.setHeader('Content-Type', contentTypeRes);
+    res.status(response.status).send(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
