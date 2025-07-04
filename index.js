@@ -45,9 +45,7 @@ app.all('/api/fetch', async (req, res) => {
       'x-linemedia-platform',
       'x-linemedia-client',
       'accept-language',
-      'user-agent',
-      'referer',
-      'origin'
+      'user-agent'
     ];
 
     const headers = {};
