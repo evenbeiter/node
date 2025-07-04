@@ -57,15 +57,15 @@ app.all('/api/fetch', async (req, res) => {
     }
 
     // ✅ 自動補 UA/Referer（避免 403）
-    if (!headers['user-agent']) {
-      headers['user-agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114.0.0.0 Safari/537.36';
-    }
-    if (!headers['referer']) {
-      try {
-        const u = new URL(targetUrl);
-        headers['referer'] = `${u.protocol}//${u.hostname}/`;
-      } catch {}
-    }
+    // if (!headers['user-agent']) {
+    //   headers['user-agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114.0.0.0 Safari/537.36';
+    // }
+    // if (!headers['referer']) {
+    //   try {
+    //     const u = new URL(targetUrl);
+    //     headers['referer'] = `${u.protocol}//${u.hostname}/`;
+    //   } catch {}
+    // }
 
     console.log('[proxy fetch] targetUrl: ', targetUrl);
     console.log('[proxy fetch] headers: ', headers);
