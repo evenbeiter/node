@@ -67,6 +67,9 @@ app.all('/api/fetch', async (req, res) => {
       } catch {}
     }
 
+    console.log('[proxy fetch] targetUrl: ', targetUrl);
+    console.log('[proxy fetch] headers: ', headers);
+
     const method = req.method;
     const contentType = req.headers['content-type'] || '';
     const isJson = contentType.includes('application/json');
