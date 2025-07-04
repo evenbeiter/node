@@ -10,7 +10,7 @@ const papagoClient = new Papago();
 // ✅ 設定允許的前端來源
 const allowedOrigin = 'https://evenbeiter.github.io';
 
-// ✅ 設定 CORS middleware（包含自訂 headers）
+// ✅ CORS middleware
 app.use(cors({
   origin: allowedOrigin,
   methods: ['GET', 'POST', 'OPTIONS'],
@@ -22,6 +22,14 @@ app.use(cors({
     'user-agent'
   ]
 }));
+
+// ✅ 明確處理所有 OPTIONS 預請求（解決 preflight 卡住）
+app.options('*', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-linemedia-client, x-linemedia-platform, accept-language, user-agent');
+  res.sendStatus(200);
+});
 
 // ✅ 支援 JSON 與 URL 編碼格式
 app.use(express.urlencoded({ extended: true }));
@@ -51,22 +59,13 @@ app.all('/api/fetch', async (req, res) => {
     const headers = {};
     for (const h of headerAllowList) {
       const val = req.headers[h];
-      if (val) headers[h] = String(val).trim();
+      if (typeof val === 'string') {
+        headers[h] = val.replace(/[\r\n\t]/g, '').trim();
+      }
     }
 
-    // ✅ 自動補 UA/Referer（避免 403）
-    // if (!headers['user-agent']) {
-    //   headers['user-agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114.0.0.0 Safari/537.36';
-    // }
-    // if (!headers['referer']) {
-    //   try {
-    //     const u = new URL(targetUrl);
-    //     headers['referer'] = `${u.protocol}//${u.hostname}/`;
-    //   } catch {}
-    // }
-
-    console.log('[proxy fetch] targetUrl: ', targetUrl);
-    console.log('[proxy fetch] headers: ', headers);
+    console.log('[proxy fetch] targetUrl:', targetUrl);
+    console.log('[proxy fetch] headers:', headers);
 
     const method = req.method;
     const contentType = req.headers['content-type'] || '';
@@ -85,6 +84,7 @@ app.all('/api/fetch', async (req, res) => {
 
     const response = await fetch(targetUrl, fetchOptions);
     const contentTypeRes = response.headers.get('content-type') || 'text/plain';
+
     const data = contentTypeRes.includes('application/json')
       ? await response.json()
       : await response.text();
@@ -92,12 +92,12 @@ app.all('/api/fetch', async (req, res) => {
     res.setHeader('Content-Type', contentTypeRes);
     res.status(response.status).send(data);
   } catch (err) {
+    console.error('[proxy fetch] error:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-
-// 🔹 Iframe embed
+// 🔹 Iframe embed route
 app.get('/embed', async (req, res) => {
   const url = req.query.url;
   if (!url) return res.status(400).send("No URL provided");
@@ -112,7 +112,7 @@ app.get('/embed', async (req, res) => {
   }
 });
 
-// 🔹 Google 翻譯 API route
+// 🔹 Google 翻譯 API
 app.post('/translate/google', async (req, res) => {
   const { text, to, from = 'auto' } = req.body;
   if (!text || !to) return res.status(400).json({ error: 'Missing text or target language' });
@@ -128,7 +128,7 @@ app.post('/translate/google', async (req, res) => {
   }
 });
 
-// 🔹 Papago 翻譯 API route
+// 🔹 Papago 翻譯 API
 app.post('/translate/papago', async (req, res) => {
   const { text, to, from = 'auto' } = req.body;
   if (!text || !to) return res.status(400).json({ error: 'Missing text or target language' });
