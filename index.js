@@ -53,7 +53,7 @@ app.all('/api/fetch', async (req, res) => {
     const headers = {};
     for (const h of headerAllowList) {
       const val = req.headers[h];
-      if (val) headers[h] = val;
+      if (val) headers[h] = String(val).trim();
     }
 
     // ✅ 自動補 UA/Referer（避免 403）
